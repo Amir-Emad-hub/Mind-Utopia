@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة المشاركة العامة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+        
+        .post-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .post-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .admin-mode {
+            border-color: #ef4444 !important;
+            background: linear-gradient(135deg, #fef2f2, #ffffff);
+        }
+        
+        .delete-btn {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .admin-mode .delete-btn {
+            opacity: 1;
+        }
+        
+        .blocked-content {
+            background: linear-gradient(45deg, #fee2e2, #fecaca);
+            border: 2px dashed #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b-4 border-indigo-500">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-indigo-600">🌟 MU 25 Community</h1>
+                    <p class="text-sm text-gray-600 mt-1">🌍 موقع عام - يمكن لأي شخص المشاركة والمشاهدة</p>
+                </div>
+                <div class="flex gap-4">
+                    <button id="adminToggle" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                        🔐 دخول الإدارة
+                    </button>
+                    <div class="text-sm text-gray-600">
+                        المشاركات: <span id="postCount" class="font-bold text-indigo-600">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Post Creation Form -->
+        <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border-t-4 border-indigo-500">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">✨ New Post</h2>
+            
+            <div class="space-y-6">
+                <!-- Text Input -->
+                <div>
+                    <label class="block text-lg font-semibold text-gray-700 mb-3">📝 اكتب نص:</label>
+                    <textarea id="textInput" 
+                              placeholder="شارك أفكارك، قصتك، أو أي شيء تريد أن يراه الآخرون..."
+                              class="w-full p-4 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none h-32 text-lg"></textarea>
+                </div>
+
+                <!-- Image Upload -->
+                <div>
+                    <label class="block text-lg font-semibold text-gray-700 mb-3">🖼️ أو ارفع صورة:</label>
+                    <input type="file" id="imageInput" accept="image/*" 
+                           class="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-indigo-400 transition-colors">
+                </div>
+
+                <!-- Submit Button -->
+                <button id="submitPost" 
+                        class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition-all transform hover:scale-105">
+                    🚀 نشر المشاركة
+                </button>
+            </div>
+        </div>
+
+        <!-- Admin Panel (Hidden by default) -->
+        <div id="adminPanel" class="hidden bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8">
+            <h3 class="text-xl font-bold text-red-700 mb-4">🛡️ لوحة التحكم الإدارية</h3>
+            <p class="text-red-600 mb-4">وضع الإدارة مفعل - يمكنك الآن حذف أي مشاركة بالضغط على زر الحذف</p>
+            <div class="flex gap-4">
+                <button id="clearAll" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold">
+                    🗑️ حذف جميع المشاركات
+                </button>
+                <button id="exportData" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold">
+                    💾 تصدير البيانات
+                </button>
+            </div>
+        </div>
+
+        <!-- Posts Container -->
+        <div id="postsContainer" class="space-y-6">
+            <!-- Posts will be dynamically added here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-16">
+            <div class="text-6xl mb-4">📝</div>
+            <h3 class="text-2xl font-bold text-gray-600 mb-2">لا توجد مشاركات بعد</h3>
+            <p class="text-gray-500 mb-4">كن أول من يشارك شيئاً مميزاً!</p>
+            
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Inappropriate content filter
+        const inappropriateWords = [
+            'كلمة1', 'كلمة2', 'كلمة3', // Add actual inappropriate words here
+            'spam', 'fake', 'scam'
+        ];
+
+        let posts = JSON.parse(localStorage.getItem('communityPosts')) || [];
+        let isAdminMode = false;
+        let postIdCounter = parseInt(localStorage.getItem('postIdCounter')) || 1;
+        let commentIdCounter = parseInt(localStorage.getItem('commentIdCounter')) || 1;
+
+        // DOM Elements
+        const textInput = document.getElementById('textInput');
+        const imageInput = document.getElementById('imageInput');
+        const submitBtn = document.getElementById('submitPost');
+        const postsContainer = document.getElementById('postsContainer');
+        const emptyState = document.getElementById('emptyState');
+        const adminToggle = document.getElementById('adminToggle');
+        const adminPanel = document.getElementById('adminPanel');
+        const postCount = document.getElementById('postCount');
+
+        // Content moderation function
+        function moderateContent(text) {
+            const lowerText = text.toLowerCase();
+            for (let word of inappropriateWords) {
+                if (lowerText.includes(word.toLowerCase())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Create post element
+        function createPostElement(post) {
+            const postDiv = document.createElement('div');
+            postDiv.className = `post-card bg-white rounded-2xl shadow-lg p-6 ${isAdminMode ? 'admin-mode' : ''}`;
+            postDiv.dataset.postId = post.id;
+
+            let contentHTML = '';
+            
+            if (post.blocked) {
+                contentHTML = `
+                    <div class="blocked-content p-4 rounded-lg text-center">
+                        <div class="text-2xl mb-2">⚠️</div>
+                        <p class="text-red-600 font-semibold">تم حجب هذا المحتوى لاحتوائه على كلمات غير مناسبة</p>
+                        <p class="text-sm text-red-500 mt-2">المحتوى الأصلي: "${post.originalContent}"</p>
+                    </div>
+                `;
+            } else if (post.type === 'text') {
+                contentHTML = `<p class="text-gray-800 text-lg leading-relaxed">${post.content}</p>`;
+            } else if (post.type === 'image') {
+                contentHTML = `
+                    <img src="${post.content}" alt="صورة مشاركة" 
+                         class="w-full max-w-md mx-auto rounded-xl shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                         onclick="openImageModal('${post.content}')">
+                `;
+            }
+
+            postDiv.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                            ${post.id}
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">مستخدم ${post.id}</p>
+                            <p class="text-sm text-gray-500">${post.timestamp}</p>
+                        </div>
+                    </div>
+                    <button class="delete-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-semibold transition-all"
+                            onclick="deletePost(${post.id})">
+                        🗑️ حذف
+                    </button>
+                </div>
+                <div class="content">
+                    ${contentHTML}
+                </div>
+                <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex gap-4">
+                        <button onclick="toggleLike(${post.id})" 
+                                class="like-btn flex items-center gap-2 px-3 py-1 rounded-lg transition-all ${post.liked ? 'bg-red-100 text-red-600' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'}">
+                            ${post.liked ? '❤️' : '🤍'} <span class="like-count">${post.likes || 0}</span>
+                        </button>
+                        <button onclick="toggleComments(${post.id})" 
+                                class="comment-btn flex items-center gap-2 px-3 py-1 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-all">
+                            💬 <span>${(post.comments || []).length}</span>
+                        </button>
+                    </div>
+                    <span class="text-xs text-gray-400">المشاركة #${post.id}</span>
+                </div>
+                
+                <!-- Comments Section -->
+                <div id="comments-${post.id}" class="comments-section hidden mt-4 pt-4 border-t border-gray-100">
+                    <div class="space-y-3 mb-4">
+                        ${(post.comments || []).map(comment => `
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <p class="text-sm font-semibold text-gray-700">مستخدم ${comment.userId}</p>
+                                        <p class="text-gray-800 mt-1">${comment.text}</p>
+                                        <p class="text-xs text-gray-500 mt-1">${comment.timestamp}</p>
+                                    </div>
+                                    ${isAdminMode ? `<button onclick="deleteComment(${post.id}, ${comment.id})" class="text-red-500 hover:text-red-700 text-xs ml-2">حذف</button>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="comment-input-${post.id}" 
+                               placeholder="اكتب تعليقك..." 
+                               class="flex-1 p-2 border border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none">
+                        <button onclick="addComment(${post.id})" 
+                                class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">
+                            إرسال
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            return postDiv;
+        }
+
+        // Render posts
+        function renderPosts() {
+            postsContainer.innerHTML = '';
+            
+            if (posts.length === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+                posts.reverse().forEach(post => {
+                    postsContainer.appendChild(createPostElement(post));
+                });
+                posts.reverse(); // Restore original order
+            }
+            
+            postCount.textContent = posts.length;
+        }
+
+        // Add new post
+        function addPost(content, type) {
+            const now = new Date();
+            const timestamp = now.toLocaleString('ar-EG');
+            
+            let isBlocked = false;
+            let originalContent = content;
+            
+            if (type === 'text' && !moderateContent(content)) {
+                isBlocked = true;
+            }
+            
+            const post = {
+                id: postIdCounter++,
+                content: content,
+                originalContent: originalContent,
+                type: type,
+                timestamp: timestamp,
+                blocked: isBlocked,
+                likes: 0,
+                liked: false,
+                comments: []
+            };
+            
+            posts.push(post);
+            localStorage.setItem('communityPosts', JSON.stringify(posts));
+            localStorage.setItem('postIdCounter', postIdCounter.toString());
+            
+            renderPosts();
+            
+            if (isBlocked) {
+                alert('⚠️ تم نشر المشاركة ولكن تم حجبها لاحتوائها على محتوى غير مناسب');
+            } else {
+                alert('✅ تم نشر المشاركة بنجاح!');
+            }
+        }
+
+        // Delete post
+        function deletePost(postId) {
+            if (confirm('هل أنت متأكد من حذف هذه المشاركة؟')) {
+                posts = posts.filter(post => post.id !== postId);
+                localStorage.setItem('communityPosts', JSON.stringify(posts));
+                renderPosts();
+                alert('تم حذف المشاركة بنجاح');
+            }
+        }
+
+        // Admin password (change this to your desired password)
+        const ADMIN_PASSWORD = "admin123";
+        
+        // Toggle admin mode
+        function toggleAdminMode() {
+            if (!isAdminMode) {
+                // Prompt for password
+                const password = prompt('🔐 أدخل كلمة مرور الإدارة:');
+                
+                if (password !== ADMIN_PASSWORD) {
+                    alert('❌ كلمة المرور غير صحيحة!');
+                    return;
+                }
+                
+                // Correct password - enable admin mode
+                isAdminMode = true;
+                adminToggle.textContent = '🔓 خروج من الإدارة';
+                adminToggle.className = 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors';
+                adminPanel.classList.remove('hidden');
+                alert('✅ تم دخول وضع الإدارة بنجاح!');
+            } else {
+                // Disable admin mode
+                isAdminMode = false;
+                adminToggle.textContent = '🔐 دخول الإدارة';
+                adminToggle.className = 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors';
+                adminPanel.classList.add('hidden');
+            }
+            
+            renderPosts();
+        }
+
+        // Toggle like function
+        function toggleLike(postId) {
+            const post = posts.find(p => p.id === postId);
+            if (post) {
+                if (post.liked) {
+                    post.likes = Math.max(0, (post.likes || 0) - 1);
+                    post.liked = false;
+                } else {
+                    post.likes = (post.likes || 0) + 1;
+                    post.liked = true;
+                }
+                localStorage.setItem('communityPosts', JSON.stringify(posts));
+                renderPosts();
+            }
+        }
+
+        // Toggle comments visibility
+        function toggleComments(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+            if (commentsSection.classList.contains('hidden')) {
+                commentsSection.classList.remove('hidden');
+            } else {
+                commentsSection.classList.add('hidden');
+            }
+        }
+
+        // Add comment function
+        function addComment(postId) {
+            const commentInput = document.getElementById(`comment-input-${postId}`);
+            const commentText = commentInput.value.trim();
+            
+            if (!commentText) {
+                alert('⚠️ يرجى كتابة تعليق');
+                return;
+            }
+
+            if (!moderateContent(commentText)) {
+                alert('⚠️ التعليق يحتوي على كلمات غير مناسبة');
+                return;
+            }
+
+            const post = posts.find(p => p.id === postId);
+            if (post) {
+                const comment = {
+                    id: commentIdCounter++,
+                    text: commentText,
+                    userId: Math.floor(Math.random() * 1000) + 1,
+                    timestamp: new Date().toLocaleString('ar-EG')
+                };
+                
+                if (!post.comments) post.comments = [];
+                post.comments.push(comment);
+                
+                localStorage.setItem('communityPosts', JSON.stringify(posts));
+                localStorage.setItem('commentIdCounter', commentIdCounter.toString());
+                
+                commentInput.value = '';
+                renderPosts();
+                
+                // Keep comments section open
+                setTimeout(() => {
+                    document.getElementById(`comments-${postId}`).classList.remove('hidden');
+                }, 100);
+            }
+        }
+
+        // Delete comment function
+        function deleteComment(postId, commentId) {
+            if (confirm('هل أنت متأكد من حذف هذا التعليق؟')) {
+                const post = posts.find(p => p.id === postId);
+                if (post && post.comments) {
+                    post.comments = post.comments.filter(c => c.id !== commentId);
+                    localStorage.setItem('communityPosts', JSON.stringify(posts));
+                    renderPosts();
+                    
+                    // Keep comments section open
+                    setTimeout(() => {
+                        document.getElementById(`comments-${postId}`).classList.remove('hidden');
+                    }, 100);
+                }
+            }
+        }
+
+        // Image modal
+        function openImageModal(src) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="relative max-w-4xl max-h-full p-4">
+                    <img src="${src}" class="max-w-full max-h-full rounded-lg shadow-2xl">
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                        ✕
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Event Listeners
+        submitBtn.addEventListener('click', () => {
+            const textContent = textInput.value.trim();
+            const imageFile = imageInput.files[0];
+            
+            if (!textContent && !imageFile) {
+                alert('⚠️ يرجى كتابة نص أو اختيار صورة');
+                return;
+            }
+            
+            if (textContent && imageFile) {
+                alert('⚠️ يرجى اختيار نص أو صورة وليس الاثنين معاً');
+                return;
+            }
+            
+            if (textContent) {
+                addPost(textContent, 'text');
+                textInput.value = '';
+            } else if (imageFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    addPost(e.target.result, 'image');
+                    imageInput.value = '';
+                };
+                reader.readAsDataURL(imageFile);
+            }
+        });
+
+        adminToggle.addEventListener('click', toggleAdminMode);
+
+        document.getElementById('clearAll').addEventListener('click', () => {
+            if (confirm('هل أنت متأكد من حذف جميع المشاركات؟ هذا الإجراء لا يمكن التراجع عنه!')) {
+                posts = [];
+                localStorage.setItem('communityPosts', JSON.stringify(posts));
+                renderPosts();
+                alert('تم حذف جميع المشاركات');
+            }
+        });
+
+        document.getElementById('exportData').addEventListener('click', () => {
+            const dataStr = JSON.stringify(posts, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'community_posts_backup.json';
+            link.click();
+        });
+
+        // Initialize
+        renderPosts();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971cfafb64823924',t:'MTc1NTY0MTQyMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
