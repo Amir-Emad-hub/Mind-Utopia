@@ -3,8 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة المشاركة العامة</title>
+    <title>منصة المشاركة العامة - Firebase</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, push, onValue, remove, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        
+        // Firebase configuration - إعدادات مشروعك الحقيقية
+        const firebaseConfig = {
+            apiKey: "AIzaSyANcNX-ZZGRzolnMZIE4ICZ3PxOACGHOo0",
+            authDomain: "mind-utopia.firebaseapp.com",
+            databaseURL: "https://mind-utopia-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "mind-utopia",
+            storageBucket: "mind-utopia.firebasestorage.app",
+            messagingSenderId: "252138650305",
+            appId: "1:252138650305:web:ead9931b17cf8df6b63240",
+            measurementId: "G-QM6ZFBLGNX"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
+        // Make Firebase available globally
+        window.firebaseDB = database;
+        window.firebaseRef = ref;
+        window.firebasePush = push;
+        window.firebaseOnValue = onValue;
+        window.firebaseRemove = remove;
+        window.firebaseUpdate = update;
+        window.serverTimestamp = serverTimestamp;
+        
+        // Initialize the app when Firebase is ready
+        window.initializeApp();
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
         body { font-family: 'Cairo', sans-serif; }
@@ -37,6 +70,19 @@
             background: linear-gradient(45deg, #fee2e2, #fecaca);
             border: 2px dashed #ef4444;
         }
+        
+        .loading {
+            animation: pulse 2s infinite;
+        }
+        
+        .online-indicator {
+            animation: blink 2s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
@@ -45,8 +91,11 @@
         <div class="container mx-auto px-4 py-6">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-3xl font-bold text-indigo-600">🌟 MU 25 Community</h1>
-                    <p class="text-sm text-gray-600 mt-1">🌍 موقع عام - يمكن لأي شخص المشاركة والمشاهدة</p>
+                    <h1 class="text-3xl font-bold text-indigo-600">🌟 منصة المشاركة العامة</h1>
+                    <p class="text-sm text-gray-600 mt-1">
+                        🌍 موقع عام مع قاعدة بيانات مشتركة 
+                        <span class="online-indicator text-green-600">🟢 متصل</span>
+                    </p>
                 </div>
                 <div class="flex gap-4">
                     <button id="adminToggle" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
@@ -61,9 +110,27 @@
     </header>
 
     <div class="container mx-auto px-4 py-8">
+        <!-- Firebase Setup Notice -->
+        <div id="firebaseNotice" class="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6 mb-8">
+            <h3 class="text-xl font-bold text-yellow-800 mb-4">⚠️ إعداد Firebase مطلوب</h3>
+            <div class="space-y-3 text-yellow-700">
+                <p><strong>لتفعيل المشاركة بين جميع المستخدمين:</strong></p>
+                <ol class="list-decimal list-inside space-y-2 mr-4">
+                    <li>اذهب إلى <a href="https://console.firebase.google.com" target="_blank" class="text-blue-600 underline">Firebase Console</a></li>
+                    <li>أنشئ مشروع جديد</li>
+                    <li>فعّل Realtime Database</li>
+                    <li>انسخ إعدادات المشروع واستبدلها في الكود</li>
+                    <li>اضبط قواعد الأمان للقراءة والكتابة العامة</li>
+                </ol>
+                <div class="bg-yellow-100 p-3 rounded-lg mt-4">
+                    <p class="text-sm"><strong>ملاحظة:</strong> حالياً الموقع يعمل في وضع العرض التوضيحي. بعد إعداد Firebase ستصبح المشاركات مرئية لجميع المستخدمين!</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Post Creation Form -->
         <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border-t-4 border-indigo-500">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">✨ New Post</h2>
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">✨ شارك شيئاً جديداً</h2>
             
             <div class="space-y-6">
                 <!-- Text Input -->
@@ -84,7 +151,7 @@
                 <!-- Submit Button -->
                 <button id="submitPost" 
                         class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition-all transform hover:scale-105">
-                    🚀 نشر المشاركة
+                    🚀 نشر المشاركة للجميع
                 </button>
             </div>
         </div>
@@ -92,7 +159,7 @@
         <!-- Admin Panel (Hidden by default) -->
         <div id="adminPanel" class="hidden bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8">
             <h3 class="text-xl font-bold text-red-700 mb-4">🛡️ لوحة التحكم الإدارية</h3>
-            <p class="text-red-600 mb-4">وضع الإدارة مفعل - يمكنك الآن حذف أي مشاركة بالضغط على زر الحذف</p>
+            <p class="text-red-600 mb-4">وضع الإدارة مفعل - يمكنك الآن حذف أي مشاركة أو تعليق</p>
             <div class="flex gap-4">
                 <button id="clearAll" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold">
                     🗑️ حذف جميع المشاركات
@@ -103,32 +170,45 @@
             </div>
         </div>
 
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="text-center py-8">
+            <div class="loading text-4xl mb-4">⏳</div>
+            <p class="text-gray-600">جاري تحميل المشاركات...</p>
+        </div>
+
         <!-- Posts Container -->
         <div id="postsContainer" class="space-y-6">
-            <!-- Posts will be dynamically added here -->
+            <!-- Posts will be dynamically loaded from Firebase -->
         </div>
 
         <!-- Empty State -->
-        <div id="emptyState" class="text-center py-16">
+        <div id="emptyState" class="hidden text-center py-16">
             <div class="text-6xl mb-4">📝</div>
             <h3 class="text-2xl font-bold text-gray-600 mb-2">لا توجد مشاركات بعد</h3>
             <p class="text-gray-500 mb-4">كن أول من يشارك شيئاً مميزاً!</p>
-            
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 max-w-2xl mx-auto">
+                <h4 class="text-lg font-bold text-blue-800 mb-3">🔥 مميزات جديدة مع Firebase</h4>
+                <div class="space-y-2 text-sm text-blue-700">
+                    <p><strong>✅ مشاركة فورية:</strong> أي مشاركة تظهر للجميع فوراً</p>
+                    <p><strong>✅ تحديث مباشر:</strong> لا حاجة لتحديث الصفحة</p>
+                    <p><strong>✅ حفظ دائم:</strong> المشاركات محفوظة في السحابة</p>
+                    <p><strong>✅ متاح 24/7:</strong> يعمل من أي مكان في العالم</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Global variables
+        let posts = [];
+        let isAdminMode = false;
+        let isFirebaseReady = false;
+
         // Inappropriate content filter
         const inappropriateWords = [
             'كلمة1', 'كلمة2', 'كلمة3', // Add actual inappropriate words here
             'spam', 'fake', 'scam'
         ];
-
-        let posts = JSON.parse(localStorage.getItem('communityPosts')) || [];
-        let isAdminMode = false;
-        let postIdCounter = parseInt(localStorage.getItem('postIdCounter')) || 1;
-        let commentIdCounter = parseInt(localStorage.getItem('commentIdCounter')) || 1;
 
         // DOM Elements
         const textInput = document.getElementById('textInput');
@@ -139,6 +219,31 @@
         const adminToggle = document.getElementById('adminToggle');
         const adminPanel = document.getElementById('adminPanel');
         const postCount = document.getElementById('postCount');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const firebaseNotice = document.getElementById('firebaseNotice');
+
+        // Initialize app when Firebase is ready
+        window.initializeApp = function() {
+            try {
+                // Test Firebase connection
+                const testRef = window.firebaseRef(window.firebaseDB, 'posts');
+                window.firebaseOnValue(testRef, (snapshot) => {
+                    isFirebaseReady = true;
+                    firebaseNotice.style.display = 'none';
+                    loadPosts();
+                }, (error) => {
+                    console.log('Firebase not configured properly, using demo mode');
+                    isFirebaseReady = false;
+                    loadingIndicator.style.display = 'none';
+                    emptyState.classList.remove('hidden');
+                });
+            } catch (error) {
+                console.log('Firebase not configured, using demo mode');
+                isFirebaseReady = false;
+                loadingIndicator.style.display = 'none';
+                emptyState.classList.remove('hidden');
+            }
+        };
 
         // Content moderation function
         function moderateContent(text) {
@@ -149,6 +254,19 @@
                 }
             }
             return true;
+        }
+
+        // Load posts from Firebase
+        function loadPosts() {
+            if (!isFirebaseReady) return;
+            
+            const postsRef = window.firebaseRef(window.firebaseDB, 'posts');
+            window.firebaseOnValue(postsRef, (snapshot) => {
+                const data = snapshot.val();
+                posts = data ? Object.keys(data).map(key => ({...data[key], firebaseKey: key})) : [];
+                renderPosts();
+                loadingIndicator.style.display = 'none';
+            });
         }
 
         // Create post element
@@ -177,19 +295,21 @@
                 `;
             }
 
+            const timestamp = post.timestamp || new Date().toLocaleString('ar-EG');
+
             postDiv.innerHTML = `
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                            ${post.id}
+                            ${post.id || '?'}
                         </div>
                         <div>
-                            <p class="font-semibold text-gray-800">مستخدم ${post.id}</p>
-                            <p class="text-sm text-gray-500">${post.timestamp}</p>
+                            <p class="font-semibold text-gray-800">مستخدم ${post.id || 'مجهول'}</p>
+                            <p class="text-sm text-gray-500">${timestamp}</p>
                         </div>
                     </div>
                     <button class="delete-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-semibold transition-all"
-                            onclick="deletePost(${post.id})">
+                            onclick="deletePost('${post.firebaseKey}')">
                         🗑️ حذف
                     </button>
                 </div>
@@ -198,39 +318,42 @@
                 </div>
                 <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
                     <div class="flex gap-4">
-                        <button onclick="toggleLike(${post.id})" 
+                        <button onclick="toggleLike('${post.firebaseKey}')" 
                                 class="like-btn flex items-center gap-2 px-3 py-1 rounded-lg transition-all ${post.liked ? 'bg-red-100 text-red-600' : 'text-gray-500 hover:text-red-500 hover:bg-red-50'}">
                             ${post.liked ? '❤️' : '🤍'} <span class="like-count">${post.likes || 0}</span>
                         </button>
-                        <button onclick="toggleComments(${post.id})" 
+                        <button onclick="toggleComments('${post.firebaseKey}')" 
                                 class="comment-btn flex items-center gap-2 px-3 py-1 rounded-lg text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-all">
-                            💬 <span>${(post.comments || []).length}</span>
+                            💬 <span>${(post.comments ? Object.keys(post.comments).length : 0)}</span>
                         </button>
                     </div>
                     <span class="text-xs text-gray-400">المشاركة #${post.id}</span>
                 </div>
                 
                 <!-- Comments Section -->
-                <div id="comments-${post.id}" class="comments-section hidden mt-4 pt-4 border-t border-gray-100">
+                <div id="comments-${post.firebaseKey}" class="comments-section hidden mt-4 pt-4 border-t border-gray-100">
                     <div class="space-y-3 mb-4">
-                        ${(post.comments || []).map(comment => `
-                            <div class="bg-gray-50 rounded-lg p-3">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex-1">
-                                        <p class="text-sm font-semibold text-gray-700">مستخدم ${comment.userId}</p>
-                                        <p class="text-gray-800 mt-1">${comment.text}</p>
-                                        <p class="text-xs text-gray-500 mt-1">${comment.timestamp}</p>
+                        ${post.comments ? Object.keys(post.comments).map(commentKey => {
+                            const comment = post.comments[commentKey];
+                            return `
+                                <div class="bg-gray-50 rounded-lg p-3">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <p class="text-sm font-semibold text-gray-700">مستخدم ${comment.userId}</p>
+                                            <p class="text-gray-800 mt-1">${comment.text}</p>
+                                            <p class="text-xs text-gray-500 mt-1">${comment.timestamp}</p>
+                                        </div>
+                                        ${isAdminMode ? `<button onclick="deleteComment('${post.firebaseKey}', '${commentKey}')" class="text-red-500 hover:text-red-700 text-xs ml-2">حذف</button>` : ''}
                                     </div>
-                                    ${isAdminMode ? `<button onclick="deleteComment(${post.id}, ${comment.id})" class="text-red-500 hover:text-red-700 text-xs ml-2">حذف</button>` : ''}
                                 </div>
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('') : ''}
                     </div>
                     <div class="flex gap-2">
-                        <input type="text" id="comment-input-${post.id}" 
+                        <input type="text" id="comment-input-${post.firebaseKey}" 
                                placeholder="اكتب تعليقك..." 
                                class="flex-1 p-2 border border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none">
-                        <button onclick="addComment(${post.id})" 
+                        <button onclick="addComment('${post.firebaseKey}')" 
                                 class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold">
                             إرسال
                         </button>
@@ -246,13 +369,14 @@
             postsContainer.innerHTML = '';
             
             if (posts.length === 0) {
-                emptyState.style.display = 'block';
+                emptyState.classList.remove('hidden');
             } else {
-                emptyState.style.display = 'none';
-                posts.reverse().forEach(post => {
+                emptyState.classList.add('hidden');
+                // Sort posts by timestamp (newest first)
+                const sortedPosts = [...posts].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                sortedPosts.forEach(post => {
                     postsContainer.appendChild(createPostElement(post));
                 });
-                posts.reverse(); // Restore original order
             }
             
             postCount.textContent = posts.length;
@@ -260,6 +384,11 @@
 
         // Add new post
         function addPost(content, type) {
+            if (!isFirebaseReady) {
+                alert('⚠️ Firebase غير مُعد بعد. يرجى إعداد Firebase أولاً');
+                return;
+            }
+
             const now = new Date();
             const timestamp = now.toLocaleString('ar-EG');
             
@@ -271,7 +400,7 @@
             }
             
             const post = {
-                id: postIdCounter++,
+                id: Date.now(),
                 content: content,
                 originalContent: originalContent,
                 type: type,
@@ -279,39 +408,41 @@
                 blocked: isBlocked,
                 likes: 0,
                 liked: false,
-                comments: []
+                comments: {}
             };
             
-            posts.push(post);
-            localStorage.setItem('communityPosts', JSON.stringify(posts));
-            localStorage.setItem('postIdCounter', postIdCounter.toString());
-            
-            renderPosts();
-            
-            if (isBlocked) {
-                alert('⚠️ تم نشر المشاركة ولكن تم حجبها لاحتوائها على محتوى غير مناسب');
-            } else {
-                alert('✅ تم نشر المشاركة بنجاح!');
-            }
+            const postsRef = window.firebaseRef(window.firebaseDB, 'posts');
+            window.firebasePush(postsRef, post).then(() => {
+                if (isBlocked) {
+                    alert('⚠️ تم نشر المشاركة ولكن تم حجبها لاحتوائها على محتوى غير مناسب');
+                } else {
+                    alert('✅ تم نشر المشاركة بنجاح! الآن يمكن للجميع رؤيتها');
+                }
+            }).catch((error) => {
+                alert('❌ خطأ في النشر: ' + error.message);
+            });
         }
 
         // Delete post
-        function deletePost(postId) {
+        function deletePost(firebaseKey) {
+            if (!isAdminMode) return;
+            
             if (confirm('هل أنت متأكد من حذف هذه المشاركة؟')) {
-                posts = posts.filter(post => post.id !== postId);
-                localStorage.setItem('communityPosts', JSON.stringify(posts));
-                renderPosts();
-                alert('تم حذف المشاركة بنجاح');
+                const postRef = window.firebaseRef(window.firebaseDB, `posts/${firebaseKey}`);
+                window.firebaseRemove(postRef).then(() => {
+                    alert('تم حذف المشاركة بنجاح');
+                }).catch((error) => {
+                    alert('خطأ في الحذف: ' + error.message);
+                });
             }
         }
 
-        // Admin password (change this to your desired password)
+        // Admin password
         const ADMIN_PASSWORD = "admin123";
         
         // Toggle admin mode
         function toggleAdminMode() {
             if (!isAdminMode) {
-                // Prompt for password
                 const password = prompt('🔐 أدخل كلمة مرور الإدارة:');
                 
                 if (password !== ADMIN_PASSWORD) {
@@ -319,14 +450,12 @@
                     return;
                 }
                 
-                // Correct password - enable admin mode
                 isAdminMode = true;
                 adminToggle.textContent = '🔓 خروج من الإدارة';
                 adminToggle.className = 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors';
                 adminPanel.classList.remove('hidden');
                 alert('✅ تم دخول وضع الإدارة بنجاح!');
             } else {
-                // Disable admin mode
                 isAdminMode = false;
                 adminToggle.textContent = '🔐 دخول الإدارة';
                 adminToggle.className = 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors';
@@ -337,24 +466,25 @@
         }
 
         // Toggle like function
-        function toggleLike(postId) {
-            const post = posts.find(p => p.id === postId);
+        function toggleLike(firebaseKey) {
+            if (!isFirebaseReady) return;
+            
+            const post = posts.find(p => p.firebaseKey === firebaseKey);
             if (post) {
-                if (post.liked) {
-                    post.likes = Math.max(0, (post.likes || 0) - 1);
-                    post.liked = false;
-                } else {
-                    post.likes = (post.likes || 0) + 1;
-                    post.liked = true;
-                }
-                localStorage.setItem('communityPosts', JSON.stringify(posts));
-                renderPosts();
+                const newLiked = !post.liked;
+                const newLikes = newLiked ? (post.likes || 0) + 1 : Math.max(0, (post.likes || 0) - 1);
+                
+                const postRef = window.firebaseRef(window.firebaseDB, `posts/${firebaseKey}`);
+                window.firebaseUpdate(postRef, {
+                    liked: newLiked,
+                    likes: newLikes
+                });
             }
         }
 
         // Toggle comments visibility
-        function toggleComments(postId) {
-            const commentsSection = document.getElementById(`comments-${postId}`);
+        function toggleComments(firebaseKey) {
+            const commentsSection = document.getElementById(`comments-${firebaseKey}`);
             if (commentsSection.classList.contains('hidden')) {
                 commentsSection.classList.remove('hidden');
             } else {
@@ -363,8 +493,10 @@
         }
 
         // Add comment function
-        function addComment(postId) {
-            const commentInput = document.getElementById(`comment-input-${postId}`);
+        function addComment(firebaseKey) {
+            if (!isFirebaseReady) return;
+            
+            const commentInput = document.getElementById(`comment-input-${firebaseKey}`);
             const commentText = commentInput.value.trim();
             
             if (!commentText) {
@@ -377,45 +509,40 @@
                 return;
             }
 
-            const post = posts.find(p => p.id === postId);
-            if (post) {
-                const comment = {
-                    id: commentIdCounter++,
-                    text: commentText,
-                    userId: Math.floor(Math.random() * 1000) + 1,
-                    timestamp: new Date().toLocaleString('ar-EG')
-                };
-                
-                if (!post.comments) post.comments = [];
-                post.comments.push(comment);
-                
-                localStorage.setItem('communityPosts', JSON.stringify(posts));
-                localStorage.setItem('commentIdCounter', commentIdCounter.toString());
-                
+            const comment = {
+                text: commentText,
+                userId: Math.floor(Math.random() * 1000) + 1,
+                timestamp: new Date().toLocaleString('ar-EG')
+            };
+            
+            const commentRef = window.firebaseRef(window.firebaseDB, `posts/${firebaseKey}/comments`);
+            window.firebasePush(commentRef, comment).then(() => {
                 commentInput.value = '';
-                renderPosts();
-                
                 // Keep comments section open
                 setTimeout(() => {
-                    document.getElementById(`comments-${postId}`).classList.remove('hidden');
+                    const commentsSection = document.getElementById(`comments-${firebaseKey}`);
+                    if (commentsSection) {
+                        commentsSection.classList.remove('hidden');
+                    }
                 }, 100);
-            }
+            });
         }
 
         // Delete comment function
-        function deleteComment(postId, commentId) {
+        function deleteComment(postFirebaseKey, commentKey) {
+            if (!isAdminMode) return;
+            
             if (confirm('هل أنت متأكد من حذف هذا التعليق؟')) {
-                const post = posts.find(p => p.id === postId);
-                if (post && post.comments) {
-                    post.comments = post.comments.filter(c => c.id !== commentId);
-                    localStorage.setItem('communityPosts', JSON.stringify(posts));
-                    renderPosts();
-                    
+                const commentRef = window.firebaseRef(window.firebaseDB, `posts/${postFirebaseKey}/comments/${commentKey}`);
+                window.firebaseRemove(commentRef).then(() => {
                     // Keep comments section open
                     setTimeout(() => {
-                        document.getElementById(`comments-${postId}`).classList.remove('hidden');
+                        const commentsSection = document.getElementById(`comments-${postFirebaseKey}`);
+                        if (commentsSection) {
+                            commentsSection.classList.remove('hidden');
+                        }
                     }, 100);
-                }
+                });
             }
         }
 
@@ -466,11 +593,13 @@
         adminToggle.addEventListener('click', toggleAdminMode);
 
         document.getElementById('clearAll').addEventListener('click', () => {
+            if (!isAdminMode) return;
+            
             if (confirm('هل أنت متأكد من حذف جميع المشاركات؟ هذا الإجراء لا يمكن التراجع عنه!')) {
-                posts = [];
-                localStorage.setItem('communityPosts', JSON.stringify(posts));
-                renderPosts();
-                alert('تم حذف جميع المشاركات');
+                const postsRef = window.firebaseRef(window.firebaseDB, 'posts');
+                window.firebaseRemove(postsRef).then(() => {
+                    alert('تم حذف جميع المشاركات');
+                });
             }
         });
 
@@ -480,12 +609,14 @@
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'community_posts_backup.json';
+            link.download = 'firebase_posts_backup.json';
             link.click();
         });
 
-        // Initialize
-        renderPosts();
+        // Initialize when page loads
+        if (typeof window.initializeApp === 'function') {
+            window.initializeApp();
+        }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971cfafb64823924',t:'MTc1NTY0MTQyMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971d5e5fc0cae173',t:'MTc1NTY0NTQ5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
