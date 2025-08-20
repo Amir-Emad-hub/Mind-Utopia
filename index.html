@@ -1,5 +1,3 @@
-
-<script src="config.js"></script>
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -12,17 +10,16 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getDatabase, ref, push, onValue, remove, update, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
         
-        // Firebase configuration - يجب نقل هذه الإعدادات لملف منفصل
-        // للأمان: استخدم environment variables أو ملف config منفصل
+        // Firebase configuration - إعدادات مشروعك الحقيقية
         const firebaseConfig = {
-            apiKey: window.FIREBASE_CONFIG?.apiKey || "YOUR_API_KEY_HERE",
-            authDomain: window.FIREBASE_CONFIG?.authDomain || "YOUR_PROJECT.firebaseapp.com",
-            databaseURL: window.FIREBASE_CONFIG?.databaseURL || "https://YOUR_PROJECT-default-rtdb.region.firebasedatabase.app",
-            projectId: window.FIREBASE_CONFIG?.projectId || "YOUR_PROJECT_ID",
-            storageBucket: window.FIREBASE_CONFIG?.storageBucket || "YOUR_PROJECT.firebasestorage.app",
-            messagingSenderId: window.FIREBASE_CONFIG?.messagingSenderId || "YOUR_SENDER_ID",
-            appId: window.FIREBASE_CONFIG?.appId || "YOUR_APP_ID",
-            measurementId: window.FIREBASE_CONFIG?.measurementId || "YOUR_MEASUREMENT_ID"
+            apiKey: "AIzaSyANcNX-ZZGRzolnMZIE4ICZ3PxOACGHOo0",
+            authDomain: "mind-utopia.firebaseapp.com",
+            databaseURL: "https://mind-utopia-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "mind-utopia",
+            storageBucket: "mind-utopia.firebasestorage.app",
+            messagingSenderId: "252138650305",
+            appId: "1:252138650305:web:ead9931b17cf8df6b63240",
+            measurementId: "G-QM6ZFBLGNX"
         };
         
         // Initialize Firebase
@@ -113,27 +110,6 @@
     </header>
 
     <div class="container mx-auto px-4 py-8">
-        <!-- Security Notice -->
-        <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8">
-            <h3 class="text-xl font-bold text-red-800 mb-4">🔒 تحذير أمني مهم</h3>
-            <div class="space-y-3 text-red-700">
-                <p><strong>⚠️ لا تنشر إعدادات Firebase على GitHub العام!</strong></p>
-                <div class="bg-red-100 p-4 rounded-lg">
-                    <h4 class="font-bold mb-2">📋 خطوات حماية البيانات:</h4>
-                    <ol class="list-decimal list-inside space-y-2 text-sm">
-                        <li><strong>أنشئ ملف config.js منفصل:</strong> ضع فيه إعدادات Firebase الحقيقية</li>
-                        <li><strong>أضف config.js إلى .gitignore:</strong> لمنع رفعه على GitHub</li>
-                        <li><strong>استخدم Environment Variables:</strong> للمواقع المنشورة</li>
-                        <li><strong>فعّل Firebase Security Rules:</strong> لحماية قاعدة البيانات</li>
-                        <li><strong>قيّد الـ API Key:</strong> من Firebase Console</li>
-                    </ol>
-                </div>
-                <div class="bg-yellow-100 border border-yellow-300 p-3 rounded-lg">
-                    <p class="text-yellow-800 text-sm"><strong>💡 نصيحة:</strong> حالياً الكود يبحث عن إعدادات في window.FIREBASE_CONFIG - أنشئ ملف config.js وحمّله قبل هذا الملف</p>
-                </div>
-            </div>
-        </div>
-
         <!-- Firebase Setup Notice -->
         <div id="firebaseNotice" class="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6 mb-8">
             <h3 class="text-xl font-bold text-yellow-800 mb-4">⚠️ إعداد Firebase مطلوب</h3>
@@ -637,12 +613,10 @@
             link.click();
         });
 
-
-
         // Initialize when page loads
         if (typeof window.initializeApp === 'function') {
             window.initializeApp();
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971dc1a1111283c5',t:'MTc1NTY0OTU1Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'971dc581476183c5',t:'MTc1NTY0OTcxNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
